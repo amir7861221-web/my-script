@@ -98,7 +98,10 @@ screenGui.Name = "KakySinc"
 
 local main = Instance.new("Frame", screenGui)
 main.Size = UDim2.new(0, 160, 0, 100)
-main.Position = UDim2.new(0, 20, 0, 40)
+
+-- POSITION: Rechts (1) und sehr wenig höher als Mitte (0.45 statt 0.5)
+main.Position = UDim2.new(1, -170, 0.45, -50) 
+
 main.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
 main.BorderSizePixel = 0
 main.Active = true
@@ -131,9 +134,7 @@ end)
 UserInputService.InputChanged:Connect(function(input)
     if dragging and input == activeTouch and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
         local delta = input.Position - dragStart
-        local newX = math.clamp(startPos.X.Offset + delta.X, 0, Camera.ViewportSize.X - main.Size.X.Offset)
-        local newY = math.clamp(startPos.Y.Offset + delta.Y, 0, Camera.ViewportSize.Y - main.Size.Y.Offset)
-        main.Position = UDim2.new(0, newX, 0, newY)
+        main.Position = UDim2.new(0, (Camera.ViewportSize.X * startPos.X.Scale) + startPos.X.Offset + delta.X, 0, (Camera.ViewportSize.Y * startPos.Y.Scale) + startPos.Y.Offset + delta.Y)
     end
 end)
 
@@ -224,7 +225,7 @@ createToggle("Desync", 35, function(val)
     end
 end)
 
-createToggle("No Anim", 65, function(val) -- Jetzt "No Anim" benannt
+createToggle("No Anim", 65, function(val)
     idleActive = val
     if val then
         playIdle()
