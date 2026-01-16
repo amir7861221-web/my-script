@@ -1,9 +1,10 @@
 local Players = game:GetService("Players")
-local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 local player = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
 
--- FFlags für Desync
+-- FFLAGS & SETTINGS
 local FFlags = {
     GameNetPVHeaderRotationalVelocityZeroCutoffExponent = -5000,
     LargeReplicatorWrite5 = true,
@@ -11,17 +12,35 @@ local FFlags = {
     AngularVelociryLimit = 360,
     TimestepArbiterVelocityCriteriaThresholdTwoDt = 2147483646,
     S2PhysicsSenderRate = 15000,
+    DisableDPIScale = true,
     MaxDataPacketPerSend = 2147483647,
     PhysicsSenderMaxBandwidthBps = 20000,
+    TimestepArbiterHumanoidLinearVelThreshold = 21,
     MaxMissedWorldStepsRemembered = -2147483648,
+    PlayerHumanoidPropertyUpdateRestrict = true,
     SimDefaultHumanoidTimestepMultiplier = 0,
     StreamJobNOUVolumeLengthCap = 2147483647,
     DebugSendDistInSteps = -2147483648,
+    GameNetDontSendRedundantNumTimes = 1,
+    CheckPVLinearVelocityIntegrateVsDeltaPositionThresholdPercent = 1,
+    CheckPVDifferencesForInterpolationMinVelThresholdStudsPerSecHundredth = 1,
+    LargeReplicatorSerializeRead3 = true,
+    ReplicationFocusNouExtentsSizeCutoffForPauseStuds = 2147483647,
+    CheckPVCachedVelThresholdPercent = 10,
+    CheckPVDifferencesForInterpolationMinRotVelThresholdRadsPerSecHundredth = 1,
+    GameNetDontSendRedundantDeltaPositionMillionth = 1,
+    InterpolationFrameVelocityThresholdMillionth = 5,
     StreamJobNOUVolumeCap = 2147483647,
+    InterpolationFrameRotVelocityThresholdMillionth = 5,
+    CheckPVCachedRotVelThresholdPercent = 10,
     WorldStepMax = 30,
+    InterpolationFramePositionThresholdMillionth = 5,
+    TimestepArbiterHumanoidTurningVelThreshold = 1,
     SimOwnedNOUCountThresholdMillionth = 2147483647,
     GameNetPVHeaderLinearVelocityZeroCutoffExponent = -5000,
     NextGenReplicatorEnabledWrite4 = true,
+    TimestepArbiterOmegaThou = 1073741823,
+    MaxAcceptableUpdateDelay = 1,
     LargeReplicatorSerializeWrite4 = true
 }
 
@@ -30,223 +49,201 @@ local defaultFFlags = {
     LargeReplicatorWrite5 = false,
     LargeReplicatorEnabled9 = false,
     AngularVelociryLimit = 180,
+    TimestepArbiterVelocityCriteriaThresholdTwoDt = 100,
     S2PhysicsSenderRate = 60,
+    DisableDPIScale = false,
     MaxDataPacketPerSend = 1024,
     PhysicsSenderMaxBandwidthBps = 10000,
+    TimestepArbiterHumanoidLinearVelThreshold = 10,
     MaxMissedWorldStepsRemembered = 10,
+    PlayerHumanoidPropertyUpdateRestrict = false,
     SimDefaultHumanoidTimestepMultiplier = 1,
     StreamJobNOUVolumeLengthCap = 1000,
     DebugSendDistInSteps = 10,
+    GameNetDontSendRedundantNumTimes = 10,
+    CheckPVLinearVelocityIntegrateVsDeltaPositionThresholdPercent = 50,
+    CheckPVDifferencesForInterpolationMinVelThresholdStudsPerSecHundredth = 100,
+    LargeReplicatorSerializeRead3 = false,
+    ReplicationFocusNouExtentsSizeCutoffForPauseStuds = 100,
+    CheckPVCachedVelThresholdPercent = 50,
+    CheckPVDifferencesForInterpolationMinRotVelThresholdRadsPerSecHundredth = 100,
+    GameNetDontSendRedundantDeltaPositionMillionth = 100,
+    InterpolationFrameVelocityThresholdMillionth = 100,
     StreamJobNOUVolumeCap = 1000,
+    InterpolationFrameRotVelocityThresholdMillionth = 100,
+    CheckPVCachedRotVelThresholdPercent = 50,
     WorldStepMax = 60,
+    InterpolationFramePositionThresholdMillionth = 100,
+    TimestepArbiterHumanoidTurningVelThreshold = 10,
     SimOwnedNOUCountThresholdMillionth = 1000,
     GameNetPVHeaderLinearVelocityZeroCutoffExponent = 8,
     NextGenReplicatorEnabledWrite4 = false,
+    TimestepArbiterOmegaThou = 1000,
+    MaxAcceptableUpdateDelay = 10,
     LargeReplicatorSerializeWrite4 = false
 }
 
-local desyncActive = false
-local noanimActive = false
-local firstActivation = true
-local visualBox = nil
+-- VARIABLEN
+local currentBox = nil
+local idleActive = false
+local currentIdleTrack = nil
+local renderConnection = nil
 
--- Hilfsfunktionen
-local function applyFFlags(flags)
-    for name, value in pairs(flags) do
-        pcall(function() setfflag(tostring(name), tostring(value)) end)
-    end
-end
+-- UI
+local coreGui = game:GetService("CoreGui")
+if coreGui:FindFirstChild("KakySinc") then coreGui.KakySinc:Destroy() end
 
-local function respawn(plr)
-    local char = plr.Character
-    if char then
-        local hum = char:FindFirstChildOfClass("Humanoid")
-        if hum then hum:ChangeState(Enum.HumanoidStateType.Dead) end
-        char:ClearAllChildren()
-        local newChar = Instance.new("Model")
-        newChar.Parent = workspace
-        plr.Character = newChar
-        task.wait()
-        plr.Character = char
-        newChar:Destroy()
-    end
-end
+local screenGui = Instance.new("ScreenGui", coreGui)
+screenGui.Name = "KakySinc"
 
--- GUI Setup
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "v0id_Final_Blue"
-screenGui.ResetOnSpawn = false
-screenGui.Parent = game:GetService("CoreGui")
+local main = Instance.new("Frame", screenGui)
+main.Size = UDim2.new(0, 160, 0, 100)
+main.Position = UDim2.new(0, 20, 0, 40)
+main.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+main.BorderSizePixel = 0
+main.Active = true
+Instance.new("UICorner", main).CornerRadius = UDim.new(0, 8)
 
-local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 140, 0, 95)
-mainFrame.Position = UDim2.new(0, 20, 0, 20)
-mainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
-mainFrame.BorderSizePixel = 0
-mainFrame.Active = true
-mainFrame.ClipsDescendants = true
-mainFrame.Parent = screenGui
+local stroke = Instance.new("UIStroke", main)
+stroke.Thickness = 2
+stroke.Color = Color3.fromRGB(140, 90, 255)
 
-local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0, 6)
-corner.Parent = mainFrame
+-- DRAG SYSTEM
+local dragging = false
+local activeTouch = nil
+local dragStart, startPos
 
-local stroke = Instance.new("UIStroke")
-stroke.Thickness = 1.5
-stroke.Color = Color3.fromRGB(80, 50, 255)
-stroke.Parent = mainFrame
-
--- GRIFF (Header)
-local dragHandle = Instance.new("Frame")
-dragHandle.Size = UDim2.new(1, 0, 0, 30)
-dragHandle.BackgroundTransparency = 1
-dragHandle.Parent = mainFrame
-
-local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, 0, 1, 0)
-title.Text = "v0id desync"
-title.TextColor3 = Color3.fromRGB(255, 255, 255)
-title.BackgroundTransparency = 1
-title.Font = Enum.Font.GothamBold
-title.TextSize = 10
-title.Parent = dragHandle
-
--- Button Container
-local buttonContainer = Instance.new("Frame")
-buttonContainer.Size = UDim2.new(1, 0, 1, -30)
-buttonContainer.Position = UDim2.new(0, 0, 0, 30)
-buttonContainer.BackgroundTransparency = 1
-buttonContainer.Parent = mainFrame
-
-local list = Instance.new("UIListLayout")
-list.Parent = buttonContainer
-list.Padding = UDim.new(0, 4)
-list.HorizontalAlignment = Enum.HorizontalAlignment.Center
-list.SortOrder = Enum.SortOrder.LayoutOrder
-
-local function createRow(text, order)
-    local row = Instance.new("Frame")
-    row.Size = UDim2.new(0, 125, 0, 26)
-    row.BackgroundTransparency = 1
-    row.LayoutOrder = order
-    row.Parent = buttonContainer
-
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 100, 1, 0)
-    btn.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-    btn.Text = text
-    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    btn.Font = Enum.Font.GothamMedium
-    btn.TextSize = 10
-    btn.Parent = row
-    
-    local bCorner = Instance.new("UICorner")
-    bCorner.CornerRadius = UDim.new(0, 4)
-    bCorner.Parent = btn
-
-    local indicator = Instance.new("Frame")
-    indicator.Size = UDim2.new(0, 10, 0, 10)
-    indicator.Position = UDim2.new(0, 112, 0.5, -5)
-    indicator.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
-    indicator.Parent = row
-
-    local iCorner = Instance.new("UICorner")
-    iCorner.CornerRadius = UDim.new(1, 0)
-    iCorner.Parent = indicator
-
-    return btn, indicator
-end
-
-local desyncBtn, desyncInd = createRow("Desync", 1)
-local noanimBtn, noanimInd = createRow("noanim", 2)
-
---- DRAG LOGIK (Nur Header) ---
-local dragging, dragStart, startPos
-
-dragHandle.InputBegan:Connect(function(input)
-    if (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) then
+main.InputBegan:Connect(function(input)
+    if not dragging and (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) then
         dragging = true
+        activeTouch = input
         dragStart = input.Position
-        startPos = mainFrame.Position
+        startPos = main.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+                activeTouch = nil
+            end
+        end)
     end
 end)
 
 UserInputService.InputChanged:Connect(function(input)
-    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+    if dragging and input == activeTouch and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
         local delta = input.Position - dragStart
-        local screenX = screenGui.AbsoluteSize.X
-        local screenY = screenGui.AbsoluteSize.Y
-        
-        local newX = math.clamp(startPos.X.Offset + delta.X, 0, screenX - mainFrame.AbsoluteSize.X)
-        local newY = math.clamp(startPos.Y.Offset + delta.Y, 0, screenY - mainFrame.AbsoluteSize.Y)
-        
-        mainFrame.Position = UDim2.new(0, newX, 0, newY)
+        local newX = math.clamp(startPos.X.Offset + delta.X, 0, Camera.ViewportSize.X - main.Size.X.Offset)
+        local newY = math.clamp(startPos.Y.Offset + delta.Y, 0, Camera.ViewportSize.Y - main.Size.Y.Offset)
+        main.Position = UDim2.new(0, newX, 0, newY)
     end
 end)
 
-UserInputService.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = false
-    end
-end)
+local title = Instance.new("TextLabel", main)
+title.Size = UDim2.new(1, 0, 0, 30)
+title.Text = "⚡️no tool desync⚡️"
+title.TextColor3 = Color3.new(1, 1, 1)
+title.BackgroundTransparency = 1
+title.Font = Enum.Font.GothamBold
+title.TextSize = 11
 
--- Box Logik (3x3x3 HELLBLAU)
-local function toggleVisualBox(state)
-    if state then
-        if not visualBox then
-            visualBox = Instance.new("Part")
-            visualBox.Size = Vector3.new(3, 3, 3)
-            visualBox.Transparency = 0.5
-            visualBox.Color = Color3.fromRGB(0, 220, 255) -- Hellblau
-            visualBox.CanCollide = false
-            visualBox.Anchored = true
-            visualBox.Material = Enum.Material.SmoothPlastic
-            visualBox.Parent = workspace
-        end
-        if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-            visualBox.CFrame = player.Character.HumanoidRootPart.CFrame
-        end
-    else
-        if visualBox then visualBox:Destroy() visualBox = nil end
+-- NO ANIM (IDLE) LOGIK
+local function getIdleId()
+    local anim = player.Character and player.Character:FindFirstChild("Animate")
+    if anim and anim:FindFirstChild("idle") then
+        local idObj = anim.idle:FindFirstChildWhichIsA("Animation")
+        return idObj and idObj.AnimationId
+    end
+    return nil
+end
+
+local function stopIdle()
+    if currentIdleTrack then currentIdleTrack:Stop() currentIdleTrack = nil end
+    local animScript = player.Character and player.Character:FindFirstChild("Animate")
+    if animScript then animScript.Disabled = false end
+end
+
+local function playIdle()
+    local char = player.Character
+    local hum = char and char:FindFirstChild("Humanoid")
+    local idleId = getIdleId()
+    if hum and idleId then
+        local anim = Instance.new("Animation")
+        anim.AnimationId = idleId
+        currentIdleTrack = hum:LoadAnimation(anim)
+        currentIdleTrack.Priority = Enum.AnimationPriority.Action
+        currentIdleTrack.Looped = true
+        currentIdleTrack:Play()
+        local animScript = char:FindFirstChild("Animate")
+        if animScript then animScript.Disabled = true end
     end
 end
 
--- Button Logik
-desyncBtn.MouseButton1Click:Connect(function()
-    desyncActive = not desyncActive
-    if desyncActive then
-        applyFFlags(FFlags)
-        if firstActivation then respawn(player) firstActivation = false end
-        desyncInd.BackgroundColor3 = Color3.fromRGB(80, 255, 80)
-        toggleVisualBox(true)
-    else
-        applyFFlags(defaultFFlags)
-        desyncInd.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
-        toggleVisualBox(false)
-    end
-end)
+-- TOGGLE CREATOR
+local function createToggle(name, yPos, callback)
+    local btn = Instance.new("TextButton", main)
+    btn.Size = UDim2.new(0, 135, 0, 25)
+    btn.Position = UDim2.new(0.5, -67.5, 0, yPos)
+    btn.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    btn.Text = name
+    btn.TextColor3 = Color3.fromRGB(180, 180, 180)
+    btn.Font = Enum.Font.GothamMedium
+    btn.TextSize = 11
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 5)
 
-noanimBtn.MouseButton1Click:Connect(function()
-    noanimActive = not noanimActive
-    if noanimActive then
-        noanimInd.BackgroundColor3 = Color3.fromRGB(80, 255, 80)
-    else
-        noanimInd.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
-    end
-end)
+    local status = Instance.new("Frame", btn)
+    status.Size = UDim2.new(0, 6, 0, 6)
+    status.Position = UDim2.new(1, -14, 0.5, -3)
+    status.BackgroundColor3 = Color3.fromRGB(220, 40, 40)
+    Instance.new("UICorner", status).CornerRadius = UDim.new(1, 0)
 
-RunService.Stepped:Connect(function()
-    if noanimActive and player.Character then
-        local anim = player.Character:FindFirstChild("Animate")
-        if anim then
-            anim.Disabled = true
-            local hum = player.Character:FindFirstChildOfClass("Humanoid")
-            if hum then
-                for _, track in pairs(hum:GetPlayingAnimationTracks()) do track:Stop() end
-            end
+    local active = false
+    btn.MouseButton1Click:Connect(function()
+        active = not active
+        status.BackgroundColor3 = active and Color3.fromRGB(40, 220, 80) or Color3.fromRGB(220, 40, 40)
+        btn.TextColor3 = active and Color3.new(1, 1, 1) or Color3.fromRGB(180, 180, 180)
+        callback(active)
+    end)
+end
+
+-- BUTTONS
+createToggle("Desync", 35, function(val)
+    if val then 
+        for n, v in pairs(FFlags) do pcall(function() setfflag(tostring(n), tostring(v)) end) end
+        local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            currentBox = Instance.new("Part", workspace)
+            currentBox.Size = Vector3.new(3, 3, 3)
+            currentBox.CFrame = hrp.CFrame
+            currentBox.Anchored = true; currentBox.CanCollide = false
+            currentBox.Material = Enum.Material.Neon
+            currentBox.Color = Color3.fromRGB(140, 90, 255)
+            currentBox.Transparency = 0.5
         end
-    elseif not noanimActive and player.Character then
-        local anim = player.Character:FindFirstChild("Animate")
-        if anim then anim.Disabled = false end
+    else 
+        for n, v in pairs(defaultFFlags) do pcall(function() setfflag(tostring(n), tostring(v)) end) end
+        if currentBox then currentBox:Destroy(); currentBox = nil end
     end
+end)
+
+createToggle("No Anim", 65, function(val) -- Jetzt "No Anim" benannt
+    idleActive = val
+    if val then
+        playIdle()
+        renderConnection = RunService.RenderStepped:Connect(function()
+            local hum = player.Character and player.Character:FindFirstChild("Humanoid")
+            if hum and idleActive then
+                if currentIdleTrack and not currentIdleTrack.IsPlaying then currentIdleTrack:Play() end
+                for _, t in pairs(hum:GetPlayingAnimationTracks()) do
+                    if t ~= currentIdleTrack and t.Name ~= "Layer1" then t:Stop(0) end
+                end
+            end
+        end)
+    else
+        stopIdle()
+        if renderConnection then renderConnection:Disconnect(); renderConnection = nil end
+    end
+end)
+
+player.CharacterAdded:Connect(function()
+    task.wait(0.5)
+    if idleActive then playIdle() end
 end)
