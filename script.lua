@@ -1,250 +1,109 @@
-local Players = game:GetService("Players")
+-- VOID ALLOW - Sleek Edition (v2.0)
+local LocalPlayer = game:GetService("Players").LocalPlayer
 local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
-local player = Players.LocalPlayer
-local Camera = workspace.CurrentCamera
+local TweenService = game:GetService("TweenService")
 
--- FFLAGS & SETTINGS
-local FFlags = {
-    GameNetPVHeaderRotationalVelocityZeroCutoffExponent = -5000,
-    LargeReplicatorWrite5 = true,
-    LargeReplicatorEnabled9 = true,
-    AngularVelociryLimit = 360,
-    TimestepArbiterVelocityCriteriaThresholdTwoDt = 2147483646,
-    S2PhysicsSenderRate = 15000,
-    DisableDPIScale = true,
-    MaxDataPacketPerSend = 2147483647,
-    PhysicsSenderMaxBandwidthBps = 20000,
-    TimestepArbiterHumanoidLinearVelThreshold = 21,
-    MaxMissedWorldStepsRemembered = -2147483648,
-    PlayerHumanoidPropertyUpdateRestrict = true,
-    SimDefaultHumanoidTimestepMultiplier = 0,
-    StreamJobNOUVolumeLengthCap = 2147483647,
-    DebugSendDistInSteps = -2147483648,
-    GameNetDontSendRedundantNumTimes = 1,
-    CheckPVLinearVelocityIntegrateVsDeltaPositionThresholdPercent = 1,
-    CheckPVDifferencesForInterpolationMinVelThresholdStudsPerSecHundredth = 1,
-    LargeReplicatorSerializeRead3 = true,
-    ReplicationFocusNouExtentsSizeCutoffForPauseStuds = 2147483647,
-    CheckPVCachedVelThresholdPercent = 10,
-    CheckPVDifferencesForInterpolationMinRotVelThresholdRadsPerSecHundredth = 1,
-    GameNetDontSendRedundantDeltaPositionMillionth = 1,
-    InterpolationFrameVelocityThresholdMillionth = 5,
-    StreamJobNOUVolumeCap = 2147483647,
-    InterpolationFrameRotVelocityThresholdMillionth = 5,
-    CheckPVCachedRotVelThresholdPercent = 10,
-    WorldStepMax = 30,
-    InterpolationFramePositionThresholdMillionth = 5,
-    TimestepArbiterHumanoidTurningVelThreshold = 1,
-    SimOwnedNOUCountThresholdMillionth = 2147483647,
-    GameNetPVHeaderLinearVelocityZeroCutoffExponent = -5000,
-    NextGenReplicatorEnabledWrite4 = true,
-    TimestepArbiterOmegaThou = 1073741823,
-    MaxAcceptableUpdateDelay = 1,
-    LargeReplicatorSerializeWrite4 = true
-}
+-- ScreenGui Setup
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "VoidAllow_ChatPos"
+ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+ScreenGui.ResetOnSpawn = false
 
-local defaultFFlags = {
-    GameNetPVHeaderRotationalVelocityZeroCutoffExponent = 8,
-    LargeReplicatorWrite5 = false,
-    LargeReplicatorEnabled9 = false,
-    AngularVelociryLimit = 180,
-    TimestepArbiterVelocityCriteriaThresholdTwoDt = 100,
-    S2PhysicsSenderRate = 60,
-    DisableDPIScale = false,
-    MaxDataPacketPerSend = 1024,
-    PhysicsSenderMaxBandwidthBps = 10000,
-    TimestepArbiterHumanoidLinearVelThreshold = 10,
-    MaxMissedWorldStepsRemembered = 10,
-    PlayerHumanoidPropertyUpdateRestrict = false,
-    SimDefaultHumanoidTimestepMultiplier = 1,
-    StreamJobNOUVolumeLengthCap = 1000,
-    DebugSendDistInSteps = 10,
-    GameNetDontSendRedundantNumTimes = 10,
-    CheckPVLinearVelocityIntegrateVsDeltaPositionThresholdPercent = 50,
-    CheckPVDifferencesForInterpolationMinVelThresholdStudsPerSecHundredth = 100,
-    LargeReplicatorSerializeRead3 = false,
-    ReplicationFocusNouExtentsSizeCutoffForPauseStuds = 100,
-    CheckPVCachedVelThresholdPercent = 50,
-    CheckPVDifferencesForInterpolationMinRotVelThresholdRadsPerSecHundredth = 100,
-    GameNetDontSendRedundantDeltaPositionMillionth = 100,
-    InterpolationFrameVelocityThresholdMillionth = 100,
-    StreamJobNOUVolumeCap = 1000,
-    InterpolationFrameRotVelocityThresholdMillionth = 100,
-    CheckPVCachedRotVelThresholdPercent = 50,
-    WorldStepMax = 60,
-    InterpolationFramePositionThresholdMillionth = 100,
-    TimestepArbiterHumanoidTurningVelThreshold = 10,
-    SimOwnedNOUCountThresholdMillionth = 1000,
-    GameNetPVHeaderLinearVelocityZeroCutoffExponent = 8,
-    NextGenReplicatorEnabledWrite4 = false,
-    TimestepArbiterOmegaThou = 1000,
-    MaxAcceptableUpdateDelay = 10,
-    LargeReplicatorSerializeWrite4 = false
-}
+-- Main Frame (Positioniert unter dem Standard-Chat)
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 220, 0, 70)
+-- Position: Etwas Platz unter dem Chat-Bereich (ca. y=220)
+MainFrame.Position = UDim2.new(0, 15, 0, 230) 
+MainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+MainFrame.BackgroundTransparency = 0.2
+MainFrame.BorderSizePixel = 0
+MainFrame.Parent = ScreenGui
 
--- VARIABLEN
-local currentBox = nil
-local idleActive = false
-local currentIdleTrack = nil
-local renderConnection = nil
+local Corner = Instance.new("UICorner")
+Corner.CornerRadius = UDim.new(0, 15)
+Corner.Parent = MainFrame
 
--- UI
-local coreGui = game:GetService("CoreGui")
-if coreGui:FindFirstChild("KakySinc") then coreGui.KakySinc:Destroy() end
+-- Glow Effekt (UIStroke für den Premium Look)
+local Glow = Instance.new("UIStroke")
+Glow.Color = Color3.fromRGB(0, 120, 255)
+Glow.Thickness = 2.5
+Glow.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+Glow.Parent = MainFrame
 
-local screenGui = Instance.new("ScreenGui", coreGui)
-screenGui.Name = "KakySinc"
+-- Titel Label (Oben links klein)
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, -20, 0, 20)
+Title.Position = UDim2.new(0, 10, 0, 5)
+Title.BackgroundTransparency = 1
+Title.Text = "VOID // ALLOW"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 11
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Parent = MainFrame
 
-local main = Instance.new("Frame", screenGui)
-main.Size = UDim2.new(0, 160, 0, 100)
+-- Button Design
+local ActionButton = Instance.new("TextButton")
+ActionButton.Size = UDim2.new(0, 200, 0, 35)
+ActionButton.Position = UDim2.new(0.5, -100, 0, 28)
+ActionButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+ActionButton.Text = "ALLOW FRIENDS"
+ActionButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+ActionButton.Font = Enum.Font.GothamBold
+ActionButton.TextSize = 13
+ActionButton.AutoButtonColor = false
+ActionButton.Parent = MainFrame
 
--- POSITION: Rechts (1) und sehr wenig höher als Mitte (0.45 statt 0.5)
-main.Position = UDim2.new(1, -170, 0.45, -50) 
+local ButtonCorner = Instance.new("UICorner")
+ButtonCorner.CornerRadius = UDim.new(0, 10)
+ButtonCorner.Parent = ActionButton
 
-main.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
-main.BorderSizePixel = 0
-main.Active = true
-Instance.new("UICorner", main).CornerRadius = UDim.new(0, 8)
+-- Logik & Timer
+local lastClick = 0
+local cooldownTime = 1.0 -- Jetzt 1 Sekunde
+local toggled = false
 
-local stroke = Instance.new("UIStroke", main)
-stroke.Thickness = 2
-stroke.Color = Color3.fromRGB(140, 90, 255)
-
--- DRAG SYSTEM
-local dragging = false
-local activeTouch = nil
-local dragStart, startPos
-
-main.InputBegan:Connect(function(input)
-    if not dragging and (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) then
-        dragging = true
-        activeTouch = input
-        dragStart = input.Position
-        startPos = main.Position
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then
-                dragging = false
-                activeTouch = nil
-            end
-        end)
+-- Pulse Animation für den Glow
+task.spawn(function()
+    while true do
+        local tween = TweenService:Create(Glow, TweenInfo.new(1.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), {Color = Color3.fromRGB(0, 200, 255)})
+        tween:Play()
+        break
     end
 end)
 
-UserInputService.InputChanged:Connect(function(input)
-    if dragging and input == activeTouch and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-        local delta = input.Position - dragStart
-        main.Position = UDim2.new(0, (Camera.ViewportSize.X * startPos.X.Scale) + startPos.X.Offset + delta.X, 0, (Camera.ViewportSize.Y * startPos.Y.Scale) + startPos.Y.Offset + delta.Y)
-    end
-end)
-
-local title = Instance.new("TextLabel", main)
-title.Size = UDim2.new(1, 0, 0, 30)
-title.Text = "⚡️no tool desync⚡️"
-title.TextColor3 = Color3.new(1, 1, 1)
-title.BackgroundTransparency = 1
-title.Font = Enum.Font.GothamBold
-title.TextSize = 11
-
--- NO ANIM (IDLE) LOGIK
-local function getIdleId()
-    local anim = player.Character and player.Character:FindFirstChild("Animate")
-    if anim and anim:FindFirstChild("idle") then
-        local idObj = anim.idle:FindFirstChildWhichIsA("Animation")
-        return idObj and idObj.AnimationId
-    end
-    return nil
-end
-
-local function stopIdle()
-    if currentIdleTrack then currentIdleTrack:Stop() currentIdleTrack = nil end
-    local animScript = player.Character and player.Character:FindFirstChild("Animate")
-    if animScript then animScript.Disabled = false end
-end
-
-local function playIdle()
-    local char = player.Character
-    local hum = char and char:FindFirstChild("Humanoid")
-    local idleId = getIdleId()
-    if hum and idleId then
-        local anim = Instance.new("Animation")
-        anim.AnimationId = idleId
-        currentIdleTrack = hum:LoadAnimation(anim)
-        currentIdleTrack.Priority = Enum.AnimationPriority.Action
-        currentIdleTrack.Looped = true
-        currentIdleTrack:Play()
-        local animScript = char:FindFirstChild("Animate")
-        if animScript then animScript.Disabled = true end
-    end
-end
-
--- TOGGLE CREATOR
-local function createToggle(name, yPos, callback)
-    local btn = Instance.new("TextButton", main)
-    btn.Size = UDim2.new(0, 135, 0, 25)
-    btn.Position = UDim2.new(0.5, -67.5, 0, yPos)
-    btn.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-    btn.Text = name
-    btn.TextColor3 = Color3.fromRGB(180, 180, 180)
-    btn.Font = Enum.Font.GothamMedium
-    btn.TextSize = 11
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 5)
-
-    local status = Instance.new("Frame", btn)
-    status.Size = UDim2.new(0, 6, 0, 6)
-    status.Position = UDim2.new(1, -14, 0.5, -3)
-    status.BackgroundColor3 = Color3.fromRGB(220, 40, 40)
-    Instance.new("UICorner", status).CornerRadius = UDim.new(1, 0)
-
-    local active = false
-    btn.MouseButton1Click:Connect(function()
-        active = not active
-        status.BackgroundColor3 = active and Color3.fromRGB(40, 220, 80) or Color3.fromRGB(220, 40, 40)
-        btn.TextColor3 = active and Color3.new(1, 1, 1) or Color3.fromRGB(180, 180, 180)
-        callback(active)
-    end)
-end
-
--- BUTTONS
-createToggle("Desync", 35, function(val)
-    if val then 
-        for n, v in pairs(FFlags) do pcall(function() setfflag(tostring(n), tostring(v)) end) end
-        local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-        if hrp then
-            currentBox = Instance.new("Part", workspace)
-            currentBox.Size = Vector3.new(3, 3, 3)
-            currentBox.CFrame = hrp.CFrame
-            currentBox.Anchored = true; currentBox.CanCollide = false
-            currentBox.Material = Enum.Material.Neon
-            currentBox.Color = Color3.fromRGB(140, 90, 255)
-            currentBox.Transparency = 0.5
-        end
-    else 
-        for n, v in pairs(defaultFFlags) do pcall(function() setfflag(tostring(n), tostring(v)) end) end
-        if currentBox then currentBox:Destroy(); currentBox = nil end
-    end
-end)
-
-createToggle("No Anim", 65, function(val)
-    idleActive = val
-    if val then
-        playIdle()
-        renderConnection = RunService.RenderStepped:Connect(function()
-            local hum = player.Character and player.Character:FindFirstChild("Humanoid")
-            if hum and idleActive then
-                if currentIdleTrack and not currentIdleTrack.IsPlaying then currentIdleTrack:Play() end
-                for _, t in pairs(hum:GetPlayingAnimationTracks()) do
-                    if t ~= currentIdleTrack and t.Name ~= "Layer1" then t:Stop(0) end
-                end
-            end
-        end)
+RunService.RenderStepped:Connect(function()
+    local timeLeft = math.max(0, cooldownTime - (tick() - lastClick))
+    
+    if timeLeft > 0 then
+        local status = toggled and "DISALLOW" or "ALLOW"
+        ActionButton.Text = string.format("%s [%.2fs]", status, timeLeft)
+        ActionButton.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+        ActionButton.TextColor3 = Color3.fromRGB(150, 150, 150)
+        Glow.Color = Color3.fromRGB(255, 50, 50) -- Rot während Cooldown
     else
-        stopIdle()
-        if renderConnection then renderConnection:Disconnect(); renderConnection = nil end
+        ActionButton.Text = toggled and "DISALLOW FRIENDS" or "ALLOW FRIENDS"
+        ActionButton.BackgroundColor3 = Color3.fromRGB(0, 100, 200)
+        ActionButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+        Glow.Color = Color3.fromRGB(0, 200, 255) -- Blau wenn bereit
     end
 end)
 
-player.CharacterAdded:Connect(function()
-    task.wait(0.5)
-    if idleActive then playIdle() end
+ActionButton.MouseButton1Click:Connect(function()
+    if tick() - lastClick >= cooldownTime then
+        lastClick = tick()
+        toggled = not toggled
+        
+        -- Klick Animation
+        ActionButton:TweenSize(UDim2.new(0, 190, 0, 32), "Out", "Quad", 0.1, true)
+        task.wait(0.1)
+        ActionButton:TweenSize(UDim2.new(0, 200, 0, 35), "Out", "Quad", 0.1, true)
+
+        -- Remote Ausführung
+        local remote = game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("Net"):WaitForChild("RE/PlotService/ToggleFriends")
+        if remote then
+            remote:FireServer()
+        end
+    end
 end)
